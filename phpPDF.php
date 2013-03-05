@@ -33,7 +33,7 @@ function applyNewFont($pdf, $newFont) {
 
 function addTextItem($pdf, $textItem, $idx) {
 	if(!array_key_exists("text", $textItem)) {
-		showError("'text' field must be specified for textItem ". $idx);
+		showError("'text' must be specified for textItem at position ". $idx);
 	}
 	$text = $textItem["text"];
 
@@ -62,8 +62,87 @@ function addParItem($pdf, $item, $idx) {
 }
 
 
-function addImageItem($pdf, $item, $idx) {
-	showError("addParItem no yet implemented!");
+function addImageItem($pdf, $imageItem, $idx) {
+
+	$format = null;
+	$imageURL ="";
+	if(array_key_exists("url", $imageItem)) {
+		
+		// Image url can be a file in the server's filesystem, an url, or a data uri.
+		$imageURL  = $imageItem["url"];
+		error_log($imageURL);
+		// Optional param "format" when the url is specified.
+		if(array_key_exists("format",$imageItem)) {
+			$format = $imageItem["format"];			
+			if(!validImageFormat($format)) {
+				showError("Invalid 'format' specified for imageItem at position $idx. Must be either PNG, JPEG or GIF");
+			}
+		}
+
+	} else if(array_key_exists("fileInputName", $imageItem)) {
+		// The file came as an uploaded file in an multipart post request.
+		$fileInputName = $imageItem("fileInputName");
+		if(!array_key_exists($fileInputName, $_FILES)) {
+			showError("No uploaded file found for file input name '$fileInputName' specified for imageItem at position $idx");
+		}
+
+		$uploadedFile = $_FILES[$fileInputName];
+		if(array_key_exists("error", $uploadedFile)) {
+			showError("An error happened while uploading the file specified for imageItem at position $idx");	
+		}
+
+
+
+		$imageURL = $uploadedFile["tmp_name"];
+
+		// We retrieve the format from the uploaded mime type.
+		$format = $uploadedFile["type"];
+		$barIdx = strpos($format,"/");
+		if($barIdx<=0) {
+			showError("Mime type for uploaded file specified for imageItem at position $idx is not valid");
+		}
+
+		$format = substr($format, $barIdx+1);
+		if(!validImageFormat($format)) {
+			showError("Mime type for uploaded file specified for imageItem at position $idx must be either image/png, image/jpeg or image/gif");
+		}
+
+	} else {
+		showError("Either 'url' or 'fileInputName' must be specified for imageItem at position $idx");
+	}
+
+	// We retrieve the image's size.
+	$imageSize = getimagesize($imageURL);	
+
+	$pxToMM = 25/72;
+
+	$iWidth = $imageSize[0]*$pxToMM;
+	$iHeight = $imageSize[1]*$pxToMM;
+	
+	// Optional params "width" and "height"	
+	$width = $iWidth;
+	$height = $iHeight;
+	if(array_key_exists("width",$imageItem) && array_key_exists("height",$imageItem)) {
+		$width = $imageItem["width"];
+		$height = $imageItem["height"];
+	} else if(array_key_exists("width",$imageItem)){
+		// If only one param is specified, we keep the aspct ratio.
+		$width = $imageItem["width"];
+		$height = $width*$iHeight/$iWidth;
+	} else if(array_key_exists("height",$imageItem)){
+		$height = $imageItem["height"];
+		$width = $height*$iWidth/$iHeight;
+	} 
+	
+
+	$pdf->Image($imageURL, $pdf->GetX(), $pdf->GetY(), $width, $height, $format);
+
+	$pdf->SetY($pdf->GetY()+$height);
+
+}
+
+function validImageFormat($format) {
+	return strcasecmp($format, "PNG") || strcasecmp($format, "JPEG") || strcasecmp($format, "GIF");
 }
 
 
@@ -105,7 +184,7 @@ function addItem ($pdf, $item, $idx) {
 			break;
 		case "paragraph":
 		case "par":
-			addParItem($pdf, $item, $idx);
+		 	addParItem($pdf, $item, $idx);
 			break;
 		case "image":
 			addImageItem($pdf, $item, $idx);

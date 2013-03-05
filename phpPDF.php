@@ -114,7 +114,7 @@ function addImageItem($pdf, $imageItem, $idx) {
 	// We retrieve the image's size.
 	$imageSize = getimagesize($imageURL);	
 
-	$pxToMM = 25/72;
+	$pxToMM = 25.5/72;
 
 	$iWidth = $imageSize[0]*$pxToMM;
 	$iHeight = $imageSize[1]*$pxToMM;

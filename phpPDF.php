@@ -83,11 +83,20 @@ function addItem ($pdf, $item, $idx) {
 	}
 
 	if(array_key_exists("x", $item)) {
+		// Absolute positioning.
 		$pdf->SetX($item["x"]);
+	} else if(array_key_exists("dx", $item)) {
+		// Relative
+		$pdf->SetX($pdf->GetX()+intval($item["dx"]));
 	}
 
+	
 	if(array_key_exists("y", $item)) {
+		// Absolute positioning.
 		$pdf->SetY($item["y"]);
+	} else if(array_key_exists("dy", $item)) {
+		// Relative
+		$pdf->SetY($pdf->GetY()+intval($item["dy"]));
 	}
 
 	switch(strtolower($type)) {

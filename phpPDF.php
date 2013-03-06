@@ -66,13 +66,32 @@ function addImageItem($pdf, $imageItem, $idx) {
 
 	$format = null;
 	$imageURL ="";
+	$tmpFile = null;
 	if(array_key_exists("url", $imageItem)) {
-		
+
 		// Image url can be a file in the server's filesystem, an url, or a data uri.
 		$imageURL  = $imageItem["url"];
-		error_log($imageURL);
-		// Optional param "format" when the url is specified.
-		if(array_key_exists("format",$imageItem)) {
+
+		if(strpos($imageURL,"data:")===0) {
+			// We get a temporal file name and open the image.
+			$tmpFile = tempnam(sys_get_temp_dir(),"phpPDFImage");
+
+			// We get the image's content.
+			$imgData = base64_decode(substr($imageURL, strpos($imageURL, ",")+1));
+
+			$tmpImage = imagecreatefromstring($imgData);
+
+			// The image is saved in the tmp file.
+			imagepng($tmpImage, $tmpFile,0);
+
+			// We set the temp file as the url so its used by the Image method.
+			$imageURL = $tmpFile;
+
+			// We can do this because we are saving the image ourselves.
+			$format = "PNG";
+
+		} else if(array_key_exists("format",$imageItem)) {
+			// Optional param "format" when the url or file is specified.
 			$format = $imageItem["format"];			
 			if(!validImageFormat($format)) {
 				showError("Invalid 'format' specified for imageItem at position $idx. Must be either PNG, JPEG or GIF");
@@ -91,18 +110,12 @@ function addImageItem($pdf, $imageItem, $idx) {
 			showError("An error happened while uploading the file specified for imageItem at position $idx");	
 		}
 
-
-
 		$imageURL = $uploadedFile["tmp_name"];
+		$tmpFile = $imageURL;
 
 		// We retrieve the format from the uploaded mime type.
-		$format = $uploadedFile["type"];
-		$barIdx = strpos($format,"/");
-		if($barIdx<=0) {
-			showError("Mime type for uploaded file specified for imageItem at position $idx is not valid");
-		}
-
-		$format = substr($format, $barIdx+1);
+		$format = getFormatFromMimeType($uploadedFile["type"]);
+		
 		if(!validImageFormat($format)) {
 			showError("Mime type for uploaded file specified for imageItem at position $idx must be either image/png, image/jpeg or image/gif");
 		}
@@ -139,6 +152,20 @@ function addImageItem($pdf, $imageItem, $idx) {
 
 	$pdf->SetY($pdf->GetY()+$height);
 
+	if($tmpFile) {
+		// We delete any temporal file used.
+		unlink($tmpFile);
+	}
+}
+
+function getFormatFromMimeType ($mimeType, $idx) {
+	$barIdx = strpos($mimeType,"/");
+	if($barIdx<=0) {
+		showError("Mime type for uploaded file or data uri specified for imageItem at position $idx is not valid");
+	}
+
+	$format = substr($mimeType, $barIdx+1);
+	return $format;
 }
 
 function validImageFormat($format) {

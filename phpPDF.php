@@ -99,23 +99,28 @@ function addImageItem($pdf, $imageItem, $idx) {
 		}
 
 	} else if(array_key_exists("fileInputName", $imageItem)) {
+
 		// The file came as an uploaded file in an multipart post request.
-		$fileInputName = $imageItem("fileInputName");
+		$fileInputName = $imageItem["fileInputName"];		
 		if(!array_key_exists($fileInputName, $_FILES)) {
 			showError("No uploaded file found for file input name '$fileInputName' specified for imageItem at position $idx");
 		}
 
 		$uploadedFile = $_FILES[$fileInputName];
-		if(array_key_exists("error", $uploadedFile)) {
-			showError("An error happened while uploading the file specified for imageItem at position $idx");	
+
+		if($uploadedFile["error"]) {
+			showError("An error happened while uploading the file specified for imageItem at position $idx: "
+				. $uploadedFile["error"]);	
 		}
 
+
 		$imageURL = $uploadedFile["tmp_name"];
+
 		$tmpFile = $imageURL;
 
 		// We retrieve the format from the uploaded mime type.
 		$format = getFormatFromMimeType($uploadedFile["type"]);
-		
+
 		if(!validImageFormat($format)) {
 			showError("Mime type for uploaded file specified for imageItem at position $idx must be either image/png, image/jpeg or image/gif");
 		}
@@ -127,7 +132,8 @@ function addImageItem($pdf, $imageItem, $idx) {
 	// We retrieve the image's size.
 	$imageSize = getimagesize($imageURL);	
 
-	$pxToMM = 25.5/72;
+	// Conversion between mm and px. 1 inch = 25.4 mm, and standard PDF resolution is 72 dpi (px/inch).
+	$pxToMM = 25.4/72;
 
 	$iWidth = $imageSize[0]*$pxToMM;
 	$iHeight = $imageSize[1]*$pxToMM;
@@ -227,6 +233,7 @@ function addItem ($pdf, $item, $idx) {
 
 $params = null;
 
+
 if(array_key_exists("params", $_GET)) {
 	$params =$_GET["params"];
 } else if(array_key_exists("params",$_POST)) {
@@ -237,13 +244,17 @@ $response = array();
 
 if($params) {
 	// We decode the params into an associative array
-	$params = json_decode($params,true);
-	if(!$params) {
-		showError("Params parameter isn't valid JSON!");	
+	$decodedParams = json_decode($params,true);
+	if(!$decodedParams) {
+		showError("Params parameter isn't valid JSON!: ".$params);	
 	}
+
+	$params = $decodedParams;
 } else {
 	 showError("Params parameter is required!");
 }
+
+
 
 $paperSize = "A4";
 if(array_key_exists("size", $params)) {
@@ -257,10 +268,14 @@ if(array_key_exists("margin", $params)) {
 
 $items = array();
 if(array_key_exists("items",$params)) {
+
+
 	$items = $params["items"];
 } else {
-	showError("At least one item must be defined!");
+	showError("At least one item must be defined! ".$params);
 }
+
+
 
 $pdf = new FPDF("P","mm",$paperSize);
 $pdf->SetMargins($margin, $margin);

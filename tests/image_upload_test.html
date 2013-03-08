@@ -1,0 +1,31 @@
+<html>
+<head>
+	<title>Simple test of PDF generation with uploaded images</title>
+</head>
+
+<body>
+	<h1>Simple test of PDF generation with uploaded images</h1>
+	<p>
+		This test creates a PDF containing just the uploaded image.
+	</p>
+	<form method="POST" action="../phpPDF.php" enctype="multipart/form-data">
+
+		<input type="hidden" name="params"
+			value='{"items":[{"type":"image","fileInputName":"uploadedImage","width":150}]}'/>
+		
+		<label>Select an image file</label>
+		<div>
+			
+			<input type="file" name="uploadedImage" accept="image/gif,image/png,image/jpeg"/>
+		</div>
+
+
+		<p>
+			<button type="submit">Create PDF!</button>
+
+		</p>
+	</form>
+
+</body>
+
+</html>

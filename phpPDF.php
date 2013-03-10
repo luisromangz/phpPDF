@@ -179,8 +179,127 @@ function validImageFormat($format) {
 }
 
 
-function addTableItem($pdf, $item, $idx) {
-	showError("addParItem no yet implemented!");
+function addTableItem($pdf, $tableItem, $idx) {
+
+	error_log("neeeeee".$pdf->GetX());
+
+	$widths = null;
+	if(!array_key_exists("widths",$tableItem)) {
+		showError("'widths' must be defined for the tableItem at position $idx");
+	}
+
+	$widths = $tableItem["widths"];
+
+	if(!array_key_exists("rows", $tableItem)) {
+		showError("'rows' must be defined for the tableItem at position $idx");
+	}
+
+	$rows = $tableItem["rows"];
+
+	$borderWidth = 0.3;
+	if(array_key_exists("borderWidth", $tableItem)) {
+		$borderWidth = $tableItem["borderWidth"];
+	}
+
+
+	$left = $pdf->GetX();
+	$top = $pdf->GetY();
+
+	$pdf->setLineWidth($borderWidth);
+	$pdf->setDrawColor(0,0,0);
+
+
+
+	$cellHeight = $pdf->GetStringWidth("x")*1.5+2;
+	for($rIdx = 0; $rIdx < count($rows); $rIdx++) {
+		$row = $rows[$rIdx];		
+		$rowColumnsCount = 0;
+
+		for($cIdx=0; $cIdx< count($row); $cIdx++) {
+
+			$column = $row[$cIdx];
+			$columnWidth = $widths[$cIdx];
+
+			if(is_numeric($column)) {
+				// This cell was handled with a rowspan.
+				// We must do nothing but to move the drawing position.	
+				$pdf->SetX($pdf->GetX()+$column);
+				continue;
+			}
+
+			$columnText = $column;
+			
+			$rowSpan = 1;
+
+			$halign = "L";
+			$valign = "T";
+
+			if(is_array($column)) {
+				if(!array_key_exists("text",$column)) {
+					showError("'rows' must be defined for the cell $cIdx of row $rIdx of tableItem at position $idx");
+				}
+				$columnText = $column["text"];
+
+				if(array_key_exists("colspan",$column)) {
+					$colSpan = $column["colspan"];
+					// Width is increased with the widths of next columns.
+					for($csOffset = 1; $csOffset<= $colSpan-1; $csOffset++ ) {
+						$columnWidth += $widths[$cIdx+ $csOffset];
+					}
+				}
+				
+				if(array_key_exists("rowspan",$column)) {
+
+					// We insert entries in the position of the current column in the next rows
+					// to indicate that we shouldn't draw a cell there.					
+					$rowSpan = $column["rowspan"];
+
+					for($rsOffset=1; $rsOffset<=$rowSpan-1; $rsOffset++) {
+						// We get the row by reference so modifications are applied.
+						$rsRow = &$rows[$rIdx+$rsOffset];
+
+						// We insert the column's width so if colspan is applied,
+						// we know how much we need to move.
+						array_splice($rsRow,$cIdx,0, array($columnWidth));						
+					}
+				}
+
+				if(array_key_exists("halign",$column)) {
+					$halign = $column["halign"];
+				}
+
+				if(array_key_exists("valign",$column)) {
+					$valign = $column["valign"];
+				}
+			}
+
+
+			$cX = $pdf->GetX();
+			$cY = $pdf->GetY();
+
+			// We draw the border separatedly because want to do fancy valign things.
+			$pdf->Rect($cX, $cY, $columnWidth, $cellHeight*$rowSpan);	
+
+			if($valign=="M"){
+				$pdf->Cell($columnWidth,$cellHeight* $rowSpan,$columnText,0, 0, $halign);		
+			} else if($valign=="B"){
+				$bottomPos = $cellHeight* ($rowSpan-1);
+				$pdf->SetXY($cX,$cY+$bottomPos);
+				$pdf->Cell($columnWidth,$cellHeight,$columnText,0, 0, $halign);
+				$pdf->SetXY($pdf->GetX(),$cY);
+			} else {
+				// TOP align.
+				$pdf->Cell($columnWidth,$cellHeight,$columnText,0, 0, $halign);		
+			}
+			
+
+				
+		}
+
+		
+		$pdf->SetXY($left, $pdf->GetY()+$cellHeight);
+	}
+
 }
 
 function addItem ($pdf, $item, $idx) {
@@ -194,22 +313,28 @@ function addItem ($pdf, $item, $idx) {
 		$type = $item["type"];
 	}
 
+
+	$x = $pdf->GetX();
 	if(array_key_exists("x", $item)) {
 		// Absolute positioning.
-		$pdf->SetX($item["x"]);
+		$x = intval($item["x"]);
+
 	} else if(array_key_exists("dx", $item)) {
 		// Relative
-		$pdf->SetX($pdf->GetX()+intval($item["dx"]));
+		$x+=intval($item["dx"]);
 	}
-
 	
+
+	$y = $pdf->GetY();
 	if(array_key_exists("y", $item)) {
 		// Absolute positioning.
-		$pdf->SetY($item["y"]);
+		$y = intval($item["y"]);
 	} else if(array_key_exists("dy", $item)) {
 		// Relative
-		$pdf->SetY($pdf->GetY()+intval($item["dy"]));
+		$y+=intval($item["dy"]);
 	}
+
+	$pdf->SetXY($x,$y);
 
 	switch(strtolower($type)) {
 		case "text":
@@ -280,7 +405,7 @@ if(array_key_exists("items",$params)) {
 $pdf = new FPDF("P","mm",$paperSize);
 $pdf->SetMargins($margin, $margin);
 $pdf->AddPage();
-$pdf->SetFont('Arial','B',16);
+$pdf->SetFont('Arial','',12);
 for($i=0; $i < count($items); $i++) {
 	addItem($pdf, $items[$i], $i);
 }

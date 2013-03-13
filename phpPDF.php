@@ -13,54 +13,36 @@ function showError($errMesg) {
 }
 
 function applyNewFont($pdf, $newFont) {
-	$newFamily = $pdf->FontFamily;
-	if(array_key_exists("family",$newFont)) {
-		$newFamily=$newFont["family"];
-	}
-
-	$newStyle = $pdf->FontStyle;
-	if(array_key_exists("style", $newFont)) {
-		$newStyle = $newFont["style"];
-	} 
-
-	$newSize = $pdf->FontSize;
-	if(array_key_exists("size", $newFont)) {
-		$newSize = $newFont["size"];
-	}
+	$newFamily = getOptionalParam("family",$newFont,$pdf->FontFamily);
+	
+	$newStyle = getOptionalParam("style",$newFont,$pdf->FontStyle);
+	
+	$newSize = getOptionalParam("size",$newFont,$pdf->FontSize);
 
 	$pdf->SetFont($newFamily, $newStyle, $newSize);
 }
 
 function addTextItem($pdf, $textItem, $idx) {
-	if(!array_key_exists("text", $textItem)) {
-		showError("'text' must be specified for textItem at position ". $idx);
-	}
-	$text = $textItem["text"];
+	$text = getRequiredParam("text",$textItem,$idx);
 
-	$align = "L";
-	if(array_key_exists("align",$textItem)) {
-		$align = $textItem["align"];
-	}
+	$align = getOptionalParam("align",$textItem,"L");
 	
-	$newLine = 0;
-	if(array_key_exists("newLine", $textItem)) {
-		$newLine = $textItem["newLine"];
-		if($newLine===true) {
-			$newLine = 1;
-		} else {
-			$newLine = 0;
-		}
-	}
+	$newLine = getOptionalParam("newLine",$textItem,true);
+	$newLine = $newLine?1:0;
 
-	$height = $pdf->GetStringWidth("x")*1.5;
+	$height = getLineHeight($pdf);
 	// We decode the string as in PDFs content UTF8 is not supported
 	$pdf->Cell(0, $height, utf8_decode($text),0,$newLine,$align);
 }
 
-function addParItem($pdf, $item, $idx) {
-	showError("addParItem no yet implemented!");
-}
+function addParItem($pdf, $parItem, $idx) {
+	$text = getRequiredParam("text",$parItem,$idx);
+	$align = getOptionalParam("align",$parItem,"L");
+	$width= getOptionalParam("width", $parItem, 0);
 
+	$lineHeight = getLineHeight($pdf);
+	$pdf->MultiCell($width,$lineHeight, $text, 0, $align);	
+}
 
 function addImageItem($pdf, $imageItem, $idx) {
 
@@ -181,26 +163,10 @@ function validImageFormat($format) {
 
 function addTableItem($pdf, $tableItem, $idx) {
 
-	error_log("neeeeee".$pdf->GetX());
+	$widths = getRequiredParam("widths",$tableItem,$idx);
+	$rows = getRequiredParam("rows", $tableItem, $idx);
 
-	$widths = null;
-	if(!array_key_exists("widths",$tableItem)) {
-		showError("'widths' must be defined for the tableItem at position $idx");
-	}
-
-	$widths = $tableItem["widths"];
-
-	if(!array_key_exists("rows", $tableItem)) {
-		showError("'rows' must be defined for the tableItem at position $idx");
-	}
-
-	$rows = $tableItem["rows"];
-
-	$borderWidth = 0.3;
-	if(array_key_exists("borderWidth", $tableItem)) {
-		$borderWidth = $tableItem["borderWidth"];
-	}
-
+	$borderWidth = getOptionalParam("borderWidth",$tableItem,0.3);
 
 	$left = $pdf->GetX();
 	$top = $pdf->GetY();
@@ -210,7 +176,7 @@ function addTableItem($pdf, $tableItem, $idx) {
 
 
 
-	$cellHeight = $pdf->GetStringWidth("x")*1.5+2;
+	$cellHeight = getLineHeight($pdf)+2;
 	for($rIdx = 0; $rIdx < count($rows); $rIdx++) {
 		$row = $rows[$rIdx];		
 		$rowColumnsCount = 0;
@@ -308,10 +274,7 @@ function addItem ($pdf, $item, $idx) {
 		applyNewFont($pdf, $item["newFont"]);
 	}
 
-	$type = "text";
-	if(array_key_exists("type", $item)) {
-		$type = $item["type"];
-	}
+	$type = getOptionalParam("type",$item,"text");
 
 
 	$x = $pdf->GetX();
@@ -354,6 +317,29 @@ function addItem ($pdf, $item, $idx) {
 			showError("Unsupported item type for item ". $idx);
 	}
 
+}
+
+
+function getRequiredParam($paramName, $item, $itemIdx) {
+	if(!array_key_exists($paramName, $item)) {
+		showError("'$paramName' property needs to be specified for item at position $idx.");
+	}
+
+	return $item[$paramName];
+}
+
+function getOptionalParam ($paramName, $item, $defaultValue) {
+	$result = $defaultValue;
+	if(array_key_exists($paramName, $item)) {
+		$result = $item[$paramName];
+	}
+
+	return $result;
+}
+
+function getLineHeight($pdf) {
+	// A possibly very bad appoximation.
+	return  $pdf->GetStringWidth("x")*1.5;
 }
 
 $params = null;

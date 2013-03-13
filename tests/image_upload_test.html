@@ -1,17 +1,18 @@
 <html>
 <head>
-	<title>Simple test of PDF generation with uploaded images</title>
+	<title>Simple test of PDF generation with uploaded images and image transparency</title>
 </head>
 
 <body>
 	<h1>Simple test of PDF generation with uploaded images</h1>
 	<p>
-		This test creates a PDF containing just the uploaded image.
+		This test creates a PDF containing just the uploaded image, as background;
+		and over it a nice transparent sailor girl.
 	</p>
 	<form method="POST" action="../phpPDF.php" enctype="multipart/form-data">
 
 		<input type="hidden" name="params"
-			value='{"items":[{"type":"image","fileInputName":"uploadedImage","width":150}]}'/>
+			value='{"items":[{"type":"image","fileInputName":"uploadedImage","width":150},{"type":"image","url":"http://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Wikipe-tan_in_navy_uniform2_transparent.png/240px-Wikipe-tan_in_navy_uniform2_transparent.png", "x":30,"y":30,"width":150}]}'/>
 		
 		<label>Select an image file</label>
 		<div>

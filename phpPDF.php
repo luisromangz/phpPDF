@@ -108,7 +108,7 @@ function addImageItem($pdf, $imageItem, $idx) {
 
 		$uploadedFile = $_FILES[$fileInputName];
 
-		if($uploadedFile["error"]) {
+		if($uploadedFile["error"] && $uploadedFile["error"]!==0) {
 			showError("An error happened while uploading the file specified for imageItem at position $idx: "
 				. $uploadedFile["error"]);	
 		}
@@ -119,7 +119,7 @@ function addImageItem($pdf, $imageItem, $idx) {
 		$tmpFile = $imageURL;
 
 		// We retrieve the format from the uploaded mime type.
-		$format = getFormatFromMimeType($uploadedFile["type"]);
+		$format = getFormatFromMimeType($uploadedFile["type"],$idx);
 
 		if(!validImageFormat($format)) {
 			showError("Mime type for uploaded file specified for imageItem at position $idx must be either image/png, image/jpeg or image/gif");

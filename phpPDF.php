@@ -45,80 +45,37 @@ function addParItem($pdf, $parItem, $idx) {
 }
 
 function addImageItem($pdf, $imageItem, $idx) {
+	$pngImage = null;
 
-	$format = null;
-	$imageURL ="";
-	$tmpFile = null;
 	if(array_key_exists("url", $imageItem)) {
 
 		// Image url can be a file in the server's filesystem, an url, or a data uri.
 		$imageURL  = $imageItem["url"];
 
 		if(strpos($imageURL,"data:")===0) {
-			// We get a temporal file name and open the image.
-			$tmpFile = tempnam(sys_get_temp_dir(),"phpPDFImage");
-
-			// We get the image's content.
-			$imgData = base64_decode(substr($imageURL, strpos($imageURL, ",")+1));
-
-			$tmpImage = imagecreatefromstring($imgData);
-
-			// The image is saved in the tmp file.
-			imagepng($tmpImage, $tmpFile,0);
-
-			// We set the temp file as the url so its used by the Image method.
-			$imageURL = $tmpFile;
-
-			// We can do this because we are saving the image ourselves.
-			$format = "PNG";
-
-		} else if(array_key_exists("format",$imageItem)) {
-			// Optional param "format" when the url or file is specified.
-			$format = $imageItem["format"];			
-			if(!validImageFormat($format)) {
-				showError("Invalid 'format' specified for imageItem at position $idx. Must be either PNG, JPEG or GIF");
-			}
+			$pngImage = imageFromDataUri($imageURL, $idx);
+		} else  {
+			// We try retrieving a remote image.
+			$pngImage = imageFromRemoteUrl($imageURL, $idx);
 		}
 
 	} else if(array_key_exists("fileInputName", $imageItem)) {
-
 		// The file came as an uploaded file in an multipart post request.
 		$fileInputName = $imageItem["fileInputName"];		
-		if(!array_key_exists($fileInputName, $_FILES)) {
-			showError("No uploaded file found for file input name '$fileInputName' specified for imageItem at position $idx");
-		}
-
-		$uploadedFile = $_FILES[$fileInputName];
-
-		if($uploadedFile["error"] && $uploadedFile["error"]!==0) {
-			showError("An error happened while uploading the file specified for imageItem at position $idx: "
-				. $uploadedFile["error"]);	
-		}
-
-
-		$imageURL = $uploadedFile["tmp_name"];
-
-		$tmpFile = $imageURL;
-
-		// We retrieve the format from the uploaded mime type.
-		$format = getFormatFromMimeType($uploadedFile["type"],$idx);
-
-		if(!validImageFormat($format)) {
-			showError("Mime type for uploaded file specified for imageItem at position $idx must be either image/png, image/jpeg or image/gif");
-		}
-
+		$pngImage = imageFromUpload($fileInputName, $idx);
 	} else {
 		showError("Either 'url' or 'fileInputName' must be specified for imageItem at position $idx");
 	}
 
 	// We retrieve the image's size.
-	$imageSize = getimagesize($imageURL);	
+	$imageWidthPx = imagesx($pngImage);	
+	$imageHeightPx = imagesy($pngImage);
 
 	// Conversion between mm and px. 1 inch = 25.4 mm, and standard PDF resolution is 72 dpi (px/inch).
 	$pxToMM = 25.4/72;
 
-	$iWidth = $imageSize[0]*$pxToMM;
-	$iHeight = $imageSize[1]*$pxToMM;
+	$iWidth = $imageWidthPx*$pxToMM;
+	$iHeight = $imageHeightPx*$pxToMM;
 	
 	// Optional params "width" and "height"	
 	$width = $iWidth;
@@ -127,7 +84,7 @@ function addImageItem($pdf, $imageItem, $idx) {
 		$width = $imageItem["width"];
 		$height = $imageItem["height"];
 	} else if(array_key_exists("width",$imageItem)){
-		// If only one param is specified, we keep the aspct ratio.
+		// If only one param is specified, we keep the aspect ratio.
 		$width = $imageItem["width"];
 		$height = $width*$iHeight/$iWidth;
 	} else if(array_key_exists("height",$imageItem)){
@@ -135,15 +92,125 @@ function addImageItem($pdf, $imageItem, $idx) {
 		$width = $height*$iWidth/$iHeight;
 	} 
 	
+	// We save the image in a tmp file to be able to load it.
+	$imagePath = tempnam(sys_get_temp_dir(),"imageTmp");
 
-	$pdf->Image($imageURL, $pdf->GetX(), $pdf->GetY(), $width, $height, $format);
+	imagealphablending($pngImage, false);
+	imagesavealpha($pngImage, true);
+	imagepng($pngImage, $imagePath, 1);
+
+	// We specify PNG as the format as we always convert the image or PDF to PNG.
+	$pdf->Image($imagePath, $pdf->GetX(), $pdf->GetY(), $width, $height, "PNG");
 
 	$pdf->SetY($pdf->GetY()+$height);
 
-	if($tmpFile) {
-		// We delete any temporal file used.
-		unlink($tmpFile);
+	unlink($imagePath);
+
+	imagedestroy($pngImage);
+}
+
+function imageFromDataUri($imageUrls, $idx) {
+	// We get the image's content.
+	$imgData = base64_decode(substr($imageURL, strpos($imageURL, ",")+1));
+
+	$pngImage = imageFromContents($imgData, $idx);
+	if(!$pngImage) {
+		showError("The data uri provided as url parameter for image item at position $idx doesn't contain a valid image or PDF.");
 	}
+
+	return $pngImage;
+}
+
+function imageFromRemoteUrl( $url, $idx) {
+	// Defining the default CURL options
+	$defaults = array( 
+	        CURLOPT_URL => $url, 
+	        CURLOPT_RETURNTRANSFER => TRUE	  
+	 ); 
+
+	// Open the Curl session
+	$session = curl_init();		    
+
+	// Setting the options
+	curl_setopt_array($session, $defaults);		    
+
+	// Make the call
+	$imgResp = curl_exec($session);	
+	
+
+	// Handle response
+	$srcImage = null;
+	if($imgResp) {
+	    $srcImage = imageFromContents($imgResp);
+	}  else {
+		showError("Curl couldn't retrieve the image specified in the image item at position $idx. Error was: ".curl_error($session));
+	}
+
+	if(!$imgResp) {
+		showError("The url specified for image item at position $idx didn't contain a valid image.");
+	}
+
+	// Close the connetion
+	curl_close($session);
+
+	return $srcImage;
+}
+
+function imageFromUpload($formFieldName, $idx) {
+	if(!array_key_exists($formFieldName, $_FILES)) {
+		showError("No uploaded file found for file input name '$fileInputName' specified for item at position $idx");
+	}
+
+	// We try opening the uploaded file we don't trust mime type or extensions.
+	$filePath = $_FILES[$formFieldName]["tmp_name"];
+
+
+	$resultImg = imageFromContents(file_get_contents($filePath));
+
+	if(!$resultImg){
+		showError("The image uploaded in field '$formFieldName' for image item at $idx has an invalid format.");
+	}
+	
+	unlink($filePath);
+
+	return $resultImg;
+
+}
+
+function imageFromContents($fileContents) {
+	$img = @imagecreatefromstring($fileContents);
+
+
+	if(!$img) {
+		// We try converting this from pdf.
+		$tmpPDFInput = tempnam(sys_get_temp_dir(), "pdfInput");
+		file_put_contents($tmpPDFInput, $fileContents);
+
+		
+		$img = new imagick(); // [0] can be used to set page number
+
+	   
+	    $img->setResolution(175,175);	
+	    $img->readImage($tmpPDFInput);
+	        
+	    $img->resetIterator();
+
+	    $img = $img->appendImages(true);
+
+
+	    $img->setImageFormat( "png" );
+
+	    $img->setImageUnits(imagick::RESOLUTION_PIXELSPERINCH);
+	    
+
+	    $data = $img->getImageBlob(); 
+
+
+	    $img = imagecreatefromstring($data);
+
+		unlink($tmpPDFInput);
+	}
+	return $img;
 }
 
 function getFormatFromMimeType ($mimeType, $idx) {
@@ -156,9 +223,6 @@ function getFormatFromMimeType ($mimeType, $idx) {
 	return $format;
 }
 
-function validImageFormat($format) {
-	return strcasecmp($format, "PNG") || strcasecmp($format, "JPEG") || strcasecmp($format, "GIF");
-}
 
 
 function addTableItem($pdf, $tableItem, $idx) {

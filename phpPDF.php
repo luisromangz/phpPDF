@@ -1,6 +1,6 @@
 <?
 
-require("lib/fpdf.php");
+require_once("lib/tcpdf/tcpdf.php");
 
 function showError($errMesg) {
 	error_log("phpPDF: ".$errMesg);
@@ -238,98 +238,56 @@ function addTableItem($pdf, $tableItem, $idx) {
 	$pdf->setLineWidth($borderWidth);
 	$pdf->setDrawColor(0,0,0);
 
+	$htmlTable = '<table border="1" cellpadding="4">';
 
+	$vAlignHeightHack = $pdf->GetFontSize()*2;
 
-	$cellHeight = getLineHeight($pdf)+2;
-	for($rIdx = 0; $rIdx < count($rows); $rIdx++) {
-		$row = $rows[$rIdx];		
-		$rowColumnsCount = 0;
+	for($rowIdx = 0; $rowIdx < count($rows); $rowIdx++) {
+		$htmlTable.="<tr>";
 
-		for($cIdx=0; $cIdx< count($row); $cIdx++) {
+		$row = $rows[$rowIdx];
+		for($colIdx=0; $colIdx < count($row) ; $colIdx++){
+			$column = $row[$colIdx];
 
-			$column = $row[$cIdx];
-			$columnWidth = $widths[$cIdx];
-
-			if(is_numeric($column)) {
-				// This cell was handled with a rowspan.
-				// We must do nothing but to move the drawing position.	
-				$pdf->SetX($pdf->GetX()+$column);
-				continue;
-			}
-
-			$columnText = $column;
-			
+			$colSpan = 1;
 			$rowSpan = 1;
-
-			$halign = "L";
-			$valign = "T";
-
+			$hAlign = "left";
+			$vAlign = "top";
+			$columnText = $column;
 			if(is_array($column)) {
 				if(!array_key_exists("text",$column)) {
-					showError("'rows' must be defined for the cell $cIdx of row $rIdx of tableItem at position $idx");
+					showError("'text' must be defined for the cell $cIdx of row $rIdx of tableItem at position $idx");
 				}
 				$columnText = $column["text"];
 
-				if(array_key_exists("colspan",$column)) {
-					$colSpan = $column["colspan"];
-					// Width is increased with the widths of next columns.
-					for($csOffset = 1; $csOffset<= $colSpan-1; $csOffset++ ) {
-						$columnWidth += $widths[$cIdx+ $csOffset];
-					}
-				}
-				
-				if(array_key_exists("rowspan",$column)) {
+				$colSpan = getOptionalParam("colspan", $column, 1);
+				$rowSpan = getOptionalParam("rowspan", $column, 1);
+				$hAlign = getOptionalParam("align", $column, "left");
+				$vAlign = getOptionalParam("valign", $column, "top");
+			}
 
-					// We insert entries in the position of the current column in the next rows
-					// to indicate that we shouldn't draw a cell there.					
-					$rowSpan = $column["rowspan"];
-
-					for($rsOffset=1; $rsOffset<=$rowSpan-1; $rsOffset++) {
-						// We get the row by reference so modifications are applied.
-						$rsRow = &$rows[$rIdx+$rsOffset];
-
-						// We insert the column's width so if colspan is applied,
-						// we know how much we need to move.
-						array_splice($rsRow,$cIdx,0, array($columnWidth));						
-					}
-				}
-
-				if(array_key_exists("halign",$column)) {
-					$halign = $column["halign"];
-				}
-
-				if(array_key_exists("valign",$column)) {
-					$valign = $column["valign"];
+			if($rowSpan>1) {
+				switch ($vAlign) {
+					case 'bottom':
+						$columnText="<span style=\"font-size: $vAlignHeightHack;\">"
+							.str_repeat('&nbsp;<br/>', $rowSpan).'</span>'.$columnText;
+						break;
+					case 'middle':
+						$columnText="<span style=\"font-size: $vAlignHeightHack;\">"
+							.str_repeat('&nbsp;<br/>', $rowSpan-1).'</span>'.$columnText;
+						break;
 				}
 			}
 
-
-			$cX = $pdf->GetX();
-			$cY = $pdf->GetY();
-
-			// We draw the border separatedly because want to do fancy valign things.
-			$pdf->Rect($cX, $cY, $columnWidth, $cellHeight*$rowSpan);	
-
-			if($valign=="M"){
-				$pdf->Cell($columnWidth,$cellHeight* $rowSpan,$columnText,0, 0, $halign);		
-			} else if($valign=="B"){
-				$bottomPos = $cellHeight* ($rowSpan-1);
-				$pdf->SetXY($cX,$cY+$bottomPos);
-				$pdf->Cell($columnWidth,$cellHeight,$columnText,0, 0, $halign);
-				$pdf->SetXY($pdf->GetX(),$cY);
-			} else {
-				// TOP align.
-				$pdf->Cell($columnWidth,$cellHeight,$columnText,0, 0, $halign);		
-			}
-			
-
-				
+			$htmlTable.="<td align=\"$hAlign\" colspan=\"$colSpan\" rowspan=\"$rowSpan\">$columnText</td>";
 		}
 
-		
-		$pdf->SetXY($left, $pdf->GetY()+$cellHeight);
+		$htmlTable.="</tr>";
 	}
+	
+	$htmlTable.="</table>";
 
+	$pdf->writeHTML($htmlTable, false, false, false, false, '');
 }
 
 function addItem ($pdf, $item, $idx) {
@@ -429,35 +387,32 @@ if($params) {
 	 showError("Params parameter is required!");
 }
 
-
-
-$paperSize = "A4";
-if(array_key_exists("size", $params)) {
-	$paperSize = $params["size"];
-}
-
-$margin = 30;
-if(array_key_exists("margin", $params)) {
-	$margin = $params["margin"];
-}
+$paperSize = getOptionalParam("size",$params,"A4");
+$margin = getOptionalParam("margin", $params, 30);
 
 $items = array();
 if(array_key_exists("items",$params)) {
-
-
 	$items = $params["items"];
 } else {
 	showError("At least one item must be defined! ".$params);
 }
 
 
+$outputFormat = getOptionalParam("outputFormat", $params, "PDF");
+if(!in_array($outputFormat, ["PDF","PNG"])) {
+	showError("Output format must be one of: 'PDF','PNG'");
+}
 
-$pdf = new FPDF("P","mm",$paperSize);
+$pdf = new TCPDF("P","mm",$paperSize);
+$pdf->setPrintHeader(false);
+$pdf->setPrintFooter(false);
 $pdf->SetMargins($margin, $margin);
 $pdf->AddPage();
-$pdf->SetFont('Arial','',12);
+$pdf->SetFontSize(12);
 for($i=0; $i < count($items); $i++) {
 	addItem($pdf, $items[$i], $i);
 }
 
-$pdf->Output();
+
+$pdf->Output();	
+

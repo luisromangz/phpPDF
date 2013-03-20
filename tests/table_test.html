@@ -8,10 +8,13 @@
 	<p>
 		This test creates a PDF containing a table demonstrating colspan, rowspan and cell aligment.
 	</p>
+	<p>
+		Also, the output of this test is a PNG file, not a PDF.
+	</p>
 	<form method="POST" action="../phpPDF.php" enctype="multipart/form-data">
 
 		<input type="hidden" name="params"
-			value='{"items":[{"text":"Before table","newLine":true},{"type":"table","x":50,"rows":[[{"rowspan":3,"text":"cell 1.1","width":20},{"text":"cell 1.2","width":30},{"text":"cell 1.3","width":40},{"text":"cell 1.4","width":50}],[{"rowspan":2,"text":"cell 2.1","valign":"bottom"},{"colspan":2,"text":"cell 2.2","align":"center"}],["cell 3.1",{"rowspan":2,"text":"cell 3.2","valign":"middle", "align":"right"}],["cell 4.1",{"colspan":2, "text":"cell 4.2"}]]},{"text":"After table!", "dy":0, "x":30}]}'/>
+			value='{"outputFormat":"PNG","outputFile":"tableTest.png","items":[{"text":"Before table","newLine":true},{"type":"table","x":50,"rows":[[{"rowspan":3,"text":"cell 1.1","width":20},{"text":"cell 1.2","width":30},{"text":"cell 1.3","width":40},{"text":"cell 1.4","width":50}],[{"rowspan":2,"text":"cell 2.1","valign":"bottom"},{"colspan":2,"text":"cell 2.2","align":"center"}],["cell 3.1",{"rowspan":2,"text":"cell 3.2","valign":"middle", "align":"right"}],["cell 4.1",{"colspan":2, "text":"cell 4.2"}]]},{"text":"After table!", "dy":0, "x":30}]}'/>
 		
 		<p>
 			<button type="submit">Create PDF!</button>

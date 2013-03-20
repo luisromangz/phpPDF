@@ -99,9 +99,12 @@ function addImageItem($pdf, $imageItem, $idx) {
 	imagesavealpha($pngImage, true);
 	imagepng($pngImage, $imagePath, 1);
 
+	// Page break disabled before adding the image, or it might be downscaled to fit the page even if
+	// the Image method receives a fitonpage false by default.
+	$pdf->SetAutoPageBreak(false);
 	// We specify PNG as the format as we always convert the image or PDF to PNG.
 	$pdf->Image($imagePath, $pdf->GetX(), $pdf->GetY(), $width, $height, "PNG");
-
+	$pdf->SetAutoPageBreak(true, $pdf->GetMargins()["bottom"]);
 	$pdf->SetY($pdf->GetY()+$height);
 
 	unlink($imagePath);
@@ -187,42 +190,33 @@ function imageFromContents($fileContents) {
 		file_put_contents($tmpPDFInput, $fileContents);
 
 		
-		$img = new imagick(); // [0] can be used to set page number
-
-	   
-	    $img->setResolution(175,175);	
-	    $img->readImage($tmpPDFInput);
-	        
-	    $img->resetIterator();
-
-	    $img = $img->appendImages(true);
-
-
-	    $img->setImageFormat( "png" );
-
-	    $img->setImageUnits(imagick::RESOLUTION_PIXELSPERINCH);
-	    
-
-	    $data = $img->getImageBlob(); 
-
-
-	    $img = imagecreatefromstring($data);
+		$img = convertPDFFileToImage($tmpPDFInput);
 
 		unlink($tmpPDFInput);
 	}
 	return $img;
 }
 
-function getFormatFromMimeType ($mimeType, $idx) {
-	$barIdx = strpos($mimeType,"/");
-	if($barIdx<=0) {
-		showError("Mime type for uploaded file or data uri specified for imageItem at position $idx is not valid");
-	}
+function convertPDFFileToImage($filePath) {
+	$img = new imagick(); 
+	   
+    $img->setResolution(210,210);	
+    $img->readImage($filePath);
+    
+    $img->resetIterator();
 
-	$format = substr($mimeType, $barIdx+1);
-	return $format;
+    // If the PDF has several pages, we merge all of them in one image.
+    $img = $img->appendImages(true);
+    $img->setImageFormat( "png" );    
+    $img->adaptiveBlurImage(1,1);
+    $img->setImageUnits(imagick::RESOLUTION_PIXELSPERINCH);	  
+
+    $data = $img->getImageBlob(); 
+
+    $img = imagecreatefromstring($data);
+
+    return $img;
 }
-
 
 
 function addTableItem($pdf, $tableItem, $idx) {
@@ -411,16 +405,58 @@ if(!in_array($outputFormat, ["PDF","PNG"])) {
 	showError("Output format must be one of: 'PDF','PNG'");
 }
 
+$outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
+
+
 $pdf = new TCPDF("P","mm",$paperSize);
+
+// We set the file's metadata. It won't be preserved if output is 'PNG'.
+$pdf->SetTitle(getOptionalParam("title",$params,""));
+$pdf->SetSubject(getOptionalParam("subject",$params,""));
+$pdf->SetCreator(getOptionalParam("creator", $params,"Created with phpPDF and TCPDF!"));
+$pdf->SetAuthor(getOptionalParam("author", $params,""));
+$pdf->SetKeywords(getOptionalParam("keywords",$params,""));
+
+// Set page config
 $pdf->setPrintHeader(false);
 $pdf->setPrintFooter(false);
 $pdf->SetMargins($margin, $margin);
 $pdf->AddPage();
 $pdf->SetFontSize(12);
+
+// We add items to the pdf!
 for($i=0; $i < count($items); $i++) {
 	addItem($pdf, $items[$i], $i);
 }
 
 
-$pdf->Output();	
+if($outputFormat==="PDF") {
+	$pdf->Output($outputFile,"D");		
+} else {
+	$tmpPdfOut = tempnam(sys_get_temp_dir(),"pdfOut");
+
+	// We write the file to a tmporal file.
+	$pdf->Output($tmpPdfOut,"F");
+
+	$pngImageOut = convertPDFFileToImage($tmpPdfOut);
+
+	// We remove the temporal file, now that we have the image.
+	unlink($tmpPdfOut);
+
+	header("Content-type: image/png");
+	header("Content-disposition: attachment; filename=$outputFile");
+	header('Content-Transfer-Encoding: binary');
+	header('Accept-Ranges: bytes');
+
+	// Send Headers: Prevent Caching of File
+	header('Cache-Control: private');
+	header('Pragma: private');
+	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+	
+
+	imagealphablending($pngImageOut, true);
+	//imagesavealpha($pngImageOut, true);
+	imagepng($pngImageOut, null, 9);
+}
+
 

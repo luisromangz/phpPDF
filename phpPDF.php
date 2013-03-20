@@ -1,5 +1,5 @@
 <?
-
+ini_set('max_execution_time', 300);
 require_once("lib/tcpdf/tcpdf.php");
 
 function showError($errMesg) {
@@ -227,7 +227,6 @@ function getFormatFromMimeType ($mimeType, $idx) {
 
 function addTableItem($pdf, $tableItem, $idx) {
 
-	$widths = getRequiredParam("widths",$tableItem,$idx);
 	$rows = getRequiredParam("rows", $tableItem, $idx);
 
 	$borderWidth = getOptionalParam("borderWidth",$tableItem,0.3);
@@ -254,6 +253,8 @@ function addTableItem($pdf, $tableItem, $idx) {
 			$hAlign = "left";
 			$vAlign = "top";
 			$columnText = $column;
+			$width = "auto";
+
 			if(is_array($column)) {
 				if(!array_key_exists("text",$column)) {
 					showError("'text' must be defined for the cell $cIdx of row $rIdx of tableItem at position $idx");
@@ -264,6 +265,7 @@ function addTableItem($pdf, $tableItem, $idx) {
 				$rowSpan = getOptionalParam("rowspan", $column, 1);
 				$hAlign = getOptionalParam("align", $column, "left");
 				$vAlign = getOptionalParam("valign", $column, "top");
+				$width = getOptionalParam("width",$column,"auto");
 			}
 
 			if($rowSpan>1) {
@@ -279,7 +281,13 @@ function addTableItem($pdf, $tableItem, $idx) {
 				}
 			}
 
-			$htmlTable.="<td align=\"$hAlign\" colspan=\"$colSpan\" rowspan=\"$rowSpan\">$columnText</td>";
+			if($width==="auto") {
+				$htmlTable.="<td align=\"$hAlign\" colspan=\"$colSpan\" rowspan=\"$rowSpan\">$columnText</td>";
+			} else {
+				$width.="mm";
+				$htmlTable.="<td align=\"$hAlign\" colspan=\"$colSpan\" rowspan=\"$rowSpan\" width=\"$width\">$columnText</td>";	
+			}
+			
 		}
 
 		$htmlTable.="</tr>";

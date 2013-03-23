@@ -507,7 +507,7 @@ if(!$keepFile && $outputFormat==="PDF") {
 	}
 
 	// We return a json object with the download url.
-	header("Content-Type: application/html");  
+	header("Content-Type: text/html");  
 	header('Cache-Control: private');
 	header('Pragma: private');
 	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');

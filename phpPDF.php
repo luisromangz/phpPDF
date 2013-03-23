@@ -382,8 +382,6 @@ if(array_key_exists("params", $_GET)) {
 	$params = $_POST["params"];
 }
 
-$response = array();
-
 if($params) {
 	// We decode the params into an associative array
 	$decodedParams = json_decode($params,true);
@@ -396,6 +394,35 @@ if($params) {
 	 showError("Params parameter is required!");
 }
 
+$outputFormat = getOptionalParam("outputFormat", $params, "PDF");
+if(!in_array($outputFormat, ["PDF","PNG"])) {
+	showError("Output format must be one of: 'PDF','PNG'");
+}
+
+$downloadFile = getOptionalParam("downloadFile", $params, false);
+if($downloadFile) {
+	// The user wants to download a previously generated file.
+	$outputFile = substr($downloadFile, 0, strrpos($downloadFile,"_"));
+	$outputFile.=strtolower(".$outputFormat");
+	$mimeType = $outputFormat=="PDF"?"application/pdf":"image/png";	
+
+	header("Content-type: $mimeType");
+	header("Content-disposition: attachment; filename=$outputFile");
+	header('Content-Transfer-Encoding: binary');
+	header('Accept-Ranges: bytes');
+
+	// Send Headers: Prevent Caching of File
+	header('Cache-Control: private');
+	header('Pragma: private');
+	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+	$filePath = sys_get_temp_dir()."/".$downloadFile;
+	echo file_get_contents($filePath);
+	unlink($filePath);
+	exit(0);
+}
+
+
+
 $paperSize = getOptionalParam("size",$params,"A4");
 $margin = getOptionalParam("margin", $params, 30);
 
@@ -407,10 +434,7 @@ if(array_key_exists("items",$params)) {
 }
 
 
-$outputFormat = getOptionalParam("outputFormat", $params, "PDF");
-if(!in_array($outputFormat, ["PDF","PNG"])) {
-	showError("Output format must be one of: 'PDF','PNG'");
-}
+
 
 $outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
@@ -437,9 +461,11 @@ for($i=0; $i < count($items); $i++) {
 }
 
 
-if($outputFormat==="PDF") {
+$keepFile = getOptionalParam("keepFile", $params, false);
+
+if(!$keepFile && $outputFormat==="PDF") {
 	$pdf->Output($outputFile,"D");		
-} else {
+} else if(!$keepFile) {
 	$tmpPdfOut = tempnam(sys_get_temp_dir(),"pdfOut");
 
 	// We write the file to a tmporal file.
@@ -464,6 +490,32 @@ if($outputFormat==="PDF") {
 	imagealphablending($pngImageOut, true);
 	//imagesavealpha($pngImageOut, true);
 	imagepng($pngImageOut, null, 9);
+} else {
+	$tmpPdfOut = tempnam(sys_get_temp_dir(), $outputFile."_");
+	error_log($tmpPdfOut);
+	// We write the file to a tmporal file.
+	
+	$pdf->Output($tmpPdfOut,"F");
+	if($outputFormat==="PNG") {
+		$pngImageOut = convertPDFFileToImage($tmpPdfOut);
+		imagealphablending($pngImageOut, true);
+		//imagesavealpha($pngImageOut, true);
+		imagepng($pngImageOut, $tmpPdfOut, 9);
+	}
+
+	// We return a json object with the download url.
+	header("Content-Type: application/html");  
+	header('Cache-Control: private');
+	header('Pragma: private');
+	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+
+	$response = array(
+		"downloadableFile" => str_replace(sys_get_temp_dir()."/","",$tmpPdfOut)
+		);
+	// echo out the JSON
+	echo stripslashes(json_encode($response));
 }
+
+
 
 

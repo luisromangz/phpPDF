@@ -13,11 +13,11 @@ function showError($errMesg) {
 }
 
 function applyNewFont($pdf, $newFont) {
-	$newFamily = getOptionalParam("family",$newFont,$pdf->FontFamily);
+	$newFamily = getOptionalParam("family",$newFont,$pdf->getFontFamily());
 	
-	$newStyle = getOptionalParam("style",$newFont,$pdf->FontStyle);
+	$newStyle = getOptionalParam("style",$newFont,$pdf->getFontStyle());
 	
-	$newSize = getOptionalParam("size",$newFont,$pdf->FontSize);
+	$newSize = getOptionalParam("size",$newFont,$pdf->getFontSizePt());
 
 	$pdf->SetFont($newFamily, $newStyle, $newSize);
 }
@@ -32,7 +32,7 @@ function addTextItem($pdf, $textItem, $idx) {
 
 	$height = getLineHeight($pdf);
 	// We decode the string as in PDFs content UTF8 is not supported
-	$pdf->Cell(0, $height, utf8_decode($text),0,$newLine,$align);
+	$pdf->Cell(0, $height, $text,0,$newLine,$align);
 }
 
 function addParItem($pdf, $parItem, $idx) {
@@ -339,6 +339,13 @@ function addItem ($pdf, $item, $idx) {
 			break;
 		default:
 			showError("Unsupported item type for item ". $idx);
+	}
+
+	// By default, we advance the position so we are placed after the element.
+	$keepPosition = getOptionalParam("keepPosition", $item, false);
+	if($keepPosition) {
+		// We keep the initial position, so we reset the calculated x and y.
+		$pdf->SetXY($x,$y);
 	}
 
 }

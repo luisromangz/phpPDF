@@ -112,7 +112,7 @@ function addImageItem($pdf, $imageItem, $idx) {
 	imagedestroy($pngImage);
 }
 
-function imageFromDataUri($imageUrls, $idx) {
+function imageFromDataUri($imageURL, $idx) {
 	// We get the image's content.
 	$imgData = base64_decode(substr($imageURL, strpos($imageURL, ",")+1));
 

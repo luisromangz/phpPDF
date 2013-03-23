@@ -223,15 +223,16 @@ function addTableItem($pdf, $tableItem, $idx) {
 
 	$rows = getRequiredParam("rows", $tableItem, $idx);
 
-	$borderWidth = getOptionalParam("borderWidth",$tableItem,0.3);
-
 	$left = $pdf->GetX();
 	$top = $pdf->GetY();
 
-	$pdf->setLineWidth($borderWidth);
 	$pdf->setDrawColor(0,0,0);
 
-	$htmlTable = '<table border="1" cellpadding="4">';
+	$borderWidth = $pdf->GetLineWidth();
+
+	$cellPadding = getOptionalParam("cellpadding",$tableItem, 2);
+
+	$htmlTable = "<table border=\"$borderWidth\" cellpadding=\"$cellPadding\">";
 
 	$vAlignHeightHack = $pdf->GetFontSize()*2;
 
@@ -294,9 +295,15 @@ function addTableItem($pdf, $tableItem, $idx) {
 
 function addItem ($pdf, $item, $idx) {
 	// Here we do the common stuff.
+
+	// We set the font styles that will be used in this items and following ones
+	// (if not changed again).
 	if(array_key_exists("newFont", $item)) {
 		applyNewFont($pdf, $item["newFont"]);
 	}
+
+	$lineWidth = getOptionalParam("newLineWidth",$item, $pdf->GetLineWidth());
+	$pdf->SetLineWidth($lineWidth);
 
 	$type = getOptionalParam("type",$item,"text");
 
@@ -433,9 +440,6 @@ if(array_key_exists("items",$params)) {
 	showError("At least one item must be defined! ".$params);
 }
 
-
-
-
 $outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
 
@@ -492,9 +496,8 @@ if(!$keepFile && $outputFormat==="PDF") {
 	imagepng($pngImageOut, null, 9);
 } else {
 	$tmpPdfOut = tempnam(sys_get_temp_dir(), $outputFile."_");
-	error_log($tmpPdfOut);
-	// We write the file to a tmporal file.
-	
+
+	// We write the file to a tmporal file.	
 	$pdf->Output($tmpPdfOut,"F");
 	if($outputFormat==="PNG") {
 		$pngImageOut = convertPDFFileToImage($tmpPdfOut);

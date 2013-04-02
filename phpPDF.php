@@ -104,7 +104,8 @@ function addImageItem($pdf, $imageItem, $idx) {
 	$pdf->SetAutoPageBreak(false);
 	// We specify PNG as the format as we always convert the image or PDF to PNG.
 	$pdf->Image($imagePath, $pdf->GetX(), $pdf->GetY(), $width, $height, "PNG");
-	$pdf->SetAutoPageBreak(true, $pdf->GetMargins()["bottom"]);
+	$margins = $pdf->GetMargins();
+	$pdf->SetAutoPageBreak(true, $margins["bottom"]);
 	$pdf->SetY($pdf->GetY()+$height);
 
 	unlink($imagePath);
@@ -402,7 +403,7 @@ if($params) {
 }
 
 $outputFormat = getOptionalParam("outputFormat", $params, "PDF");
-if(!in_array($outputFormat, ["PDF","PNG"])) {
+if(!in_array($outputFormat, array("PDF","PNG"))) {
 	showError("Output format must be one of: 'PDF','PNG'");
 }
 

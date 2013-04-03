@@ -126,6 +126,24 @@ function imageFromDataUri($imageURL, $idx) {
 }
 
 function imageFromRemoteUrl( $url, $idx) {
+	
+	$imageContent = remoteRequest($url);
+
+	// Handle response
+	$srcImage = imageFromContents($imageContent);
+	
+
+	if(!$srcImage) {
+		showError("The url specified for image item at position $idx didn't contain a valid image.");
+	}
+
+	// Close the connetion
+	curl_close($session);
+
+	return $srcImage;
+}
+
+function remoteRequest($url, $idx) {
 	// Defining the default CURL options
 	$defaults = array( 
 	        CURLOPT_URL => $url, 
@@ -139,25 +157,16 @@ function imageFromRemoteUrl( $url, $idx) {
 	curl_setopt_array($session, $defaults);		    
 
 	// Make the call
-	$imgResp = curl_exec($session);	
-	
-
-	// Handle response
-	$srcImage = null;
-	if($imgResp) {
-	    $srcImage = imageFromContents($imgResp);
-	}  else {
-		showError("Curl couldn't retrieve the image specified in the image item at position $idx. Error was: ".curl_error($session));
-	}
-
-	if(!$imgResp) {
-		showError("The url specified for image item at position $idx didn't contain a valid image.");
-	}
+	$remoteContent = curl_exec($session);	
 
 	// Close the connetion
 	curl_close($session);
 
-	return $srcImage;
+	if(!$remoteContent) {
+		showError("Curl couldn't retrieve the content of url ".$url." specified in the item at position $idx. Error was: ".curl_error($session));
+	}
+
+	return $remoteContent;
 }
 
 function imageFromUpload($formFieldName, $idx) {
@@ -294,6 +303,21 @@ function addTableItem($pdf, $tableItem, $idx) {
 	$pdf->writeHTML($htmlTable, false, false, false, false, '');
 }
 
+function addHtmlItem($pdf, $htmlItem, $idx) {
+	$htmlContent = getOptionalParam("content", $htmlItem,"");
+
+	if(!$htmlContent) {
+		$url = getOptionalParam("url", $htmlItem, false);
+		if(!$url) {
+			showError("Either 'url' or 'content' must be specified for the html item at position $idx");
+		}
+
+		$htmlContent = remoteRequest($url,$idx);
+	}
+
+	$pdf->writeHTML($htmlContent, false, false, false, false, '');
+}
+
 function addItem ($pdf, $item, $idx) {
 	// Here we do the common stuff.
 
@@ -344,6 +368,9 @@ function addItem ($pdf, $item, $idx) {
 			break;
 		case "table":
 			addTableItem($pdf, $item, $idx);
+			break;
+		case "html":
+			addHtmlItem($pdf, $item, $idx);
 			break;
 		default:
 			showError("Unsupported item type for item ". $idx);

@@ -1,0 +1,22 @@
+<html>
+<head>
+	<title>Simple test of PDF generation from HTML</title>
+</head>
+
+<body>
+	<h1>Simple test of PDF generation from HTML cotnent</h1>
+	
+	<form method="POST" action="../phpPDF.php" enctype="multipart/form-data">
+
+		<input type="hidden" name="params"
+			value='{"items":[{"type":"html","url":"http://localhost/phpPDF/tests/minem_table.html"},{"text":"After html!", "dy":5}]}'/>		
+		
+		<p>
+			<button type="submit">Create PDF!</button>
+
+		</p>
+	</form>
+
+</body>
+
+</html>

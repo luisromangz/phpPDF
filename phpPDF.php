@@ -131,10 +131,7 @@ $pdf->AddPage();
 $pdf->SetFontSize(12);
 
 // We add items to the pdf!
-for($i=0; $i < count($items); $i++) {
-	$pdf->addItem($items[$i], $i);
-}
-
+$pdf->addItems($items);
 
 $keepFile = getOptionalParam("keepFile", $params, false);
 

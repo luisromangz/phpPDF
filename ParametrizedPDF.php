@@ -294,6 +294,12 @@ class ParametrizedPDF extends TCPDF {
 	}
 
 
+	public function addItems($items) {
+		for($i=0; $i < count($items); $i++) {
+			$this->addItem($items[$i], $i);
+		}
+	}
+
 	public function addItem($item, $idx) {
 		// Here we do the common stuff.
 

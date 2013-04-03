@@ -460,6 +460,7 @@ if($downloadFile) {
 
 $paperSize = getOptionalParam("size",$params,"A4");
 $margin = getOptionalParam("margin", $params, 30);
+$pageOrientation = getOptionalParam("orientation", $params, "P");
 
 $items = array();
 if(array_key_exists("items",$params)) {
@@ -470,8 +471,7 @@ if(array_key_exists("items",$params)) {
 
 $outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
-
-$pdf = new TCPDF("P","mm",$paperSize);
+$pdf = new TCPDF($pageOrientation,"mm",$paperSize);
 
 // We set the file's metadata. It won't be preserved if output is 'PNG'.
 $pdf->SetTitle(getOptionalParam("title",$params,""));

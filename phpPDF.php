@@ -6,7 +6,7 @@ require_once("ParametrizedPDF.php");
 
 function getRequiredParam($paramName, $item, $itemIdx) {
 	if(!array_key_exists($paramName, $item)) {
-		showError("'$paramName' property needs to be specified for item at position $idx.");
+		showError("'$paramName' property needs to be specified for item at position $itemIdx.");
 	}
 
 	return $item[$paramName];
@@ -112,9 +112,13 @@ if(array_key_exists("items",$params)) {
 	showError("At least one item must be defined! ".$params);
 }
 
+$headerItems = getOptionalParam("headerItems", $params, false);
+$footerItems = getOptionalParam("footerItems", $params, false);
+
 $outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
 $pdf = new ParametrizedPDF($pageOrientation,"mm",$paperSize);
+
 
 // We set the file's metadata. It won't be preserved if output is 'PNG'.
 $pdf->SetTitle(getOptionalParam("title",$params,""));
@@ -123,9 +127,14 @@ $pdf->SetCreator(getOptionalParam("creator", $params,"Created with phpPDF and TC
 $pdf->SetAuthor(getOptionalParam("author", $params,""));
 $pdf->SetKeywords(getOptionalParam("keywords",$params,""));
 
-// Set page config
-$pdf->setPrintHeader(false);
-$pdf->setPrintFooter(false);
+if($headerItems) {
+	$pdf->addHeaderItems($headerItems);
+}
+
+if($footerItems) {
+	$pdf->addFooterItems($footerItems);
+}
+
 $pdf->SetMargins($margin, $margin);
 $pdf->AddPage();
 $pdf->SetFontSize(12);

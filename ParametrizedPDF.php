@@ -2,6 +2,9 @@
 
 class ParametrizedPDF extends TCPDF {
 
+	var $footerItems = array();
+	var $headerItems = array();
+
 	private function applyNewFont($newFont) {
 		$newFamily = getOptionalParam("family", $newFont, $this->getFontFamily());
 
@@ -14,7 +17,7 @@ class ParametrizedPDF extends TCPDF {
 
 	private function addTextItem($textItem, $idx) {
 		$text = getRequiredParam("text", $textItem, $idx);
-
+		
 		$align = getOptionalParam("align", $textItem, "L");
 
 		$newLine = getOptionalParam("newLine", $textItem, true);
@@ -23,6 +26,7 @@ class ParametrizedPDF extends TCPDF {
 		$height = $this->getLineHeight($this);
 		// We decode the string as in PDFs content UTF8 is not supported
 		$this->Cell(0, $height, $text, 0, $newLine, $align);
+
 	}
 
 	private function addParItem($parItem, $idx) {
@@ -295,6 +299,7 @@ class ParametrizedPDF extends TCPDF {
 
 
 	public function addItems($items) {
+
 		for($i=0; $i < count($items); $i++) {
 			$this->addItem($items[$i], $i);
 		}
@@ -338,7 +343,7 @@ class ParametrizedPDF extends TCPDF {
 		$this->SetXY($x, $y);
 
 		switch (strtolower($type)) {
-			case "text":
+			case "text":	
 				$this->addTextItem($item, $idx);
 				break;
 			case "paragraph":
@@ -352,6 +357,7 @@ class ParametrizedPDF extends TCPDF {
 				$this->addTableItem($item, $idx);
 				break;
 			case "html":
+
 				$this->addHtmlItem($item, $idx);
 				break;
 			default:
@@ -365,6 +371,27 @@ class ParametrizedPDF extends TCPDF {
 			$this->SetXY($x, $y);
 		}
 
+	}
+
+	public function addHeaderItems($items) {
+		array_push($this->headerItems, $items);
+	}
+
+	public function addFooterItems($items) {
+		array_push($this->footerItems, $items);	
+	}
+
+	public function Header() {
+		if(count($this->headerItems)>0) {
+			$this->addItems($this->headerItems);	
+		}
+		
+	}
+
+	public function Footer() {
+		if(count($this->footerItems)>0) {
+			$this->addItems($this->$footerItems);		
+		}
 	}
 
 }

@@ -112,8 +112,8 @@ if(array_key_exists("items",$params)) {
 	showError("At least one item must be defined! ".$params);
 }
 
-$headerItems = getOptionalParam("headerItems", $params, false);
-$footerItems = getOptionalParam("footerItems", $params, false);
+$header = getOptionalParam("header", $params, false);
+$footer = getOptionalParam("footer", $params, false);
 
 $outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
@@ -127,15 +127,20 @@ $pdf->SetCreator(getOptionalParam("creator", $params,"Created with phpPDF and TC
 $pdf->SetAuthor(getOptionalParam("author", $params,""));
 $pdf->SetKeywords(getOptionalParam("keywords",$params,""));
 
-if($headerItems) {
-	$pdf->addHeaderItems($headerItems);
+$pdf->SetAutoPageBreak(true, $margin);
+
+
+$pdf->SetMargins($margin, $margin,$margin,false);
+
+
+if($header) {
+	$pdf->setCustomHeader($header);
 }
 
-if($footerItems) {
-	$pdf->addFooterItems($footerItems);
+if($footer) {
+	$pdf->setCustomFooter($footer);
 }
 
-$pdf->SetMargins($margin, $margin);
 $pdf->AddPage();
 $pdf->SetFontSize(12);
 

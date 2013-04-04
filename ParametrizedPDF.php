@@ -2,8 +2,9 @@
 
 class ParametrizedPDF extends TCPDF {
 
-	var $footerItems = array();
-	var $headerItems = array();
+	protected $footerItems = array();
+	protected $headerItems = array();
+	private $_theaderLeft;
 
 	private function applyNewFont($newFont) {
 		$newFamily = getOptionalParam("family", $newFont, $this->getFontFamily());
@@ -373,25 +374,113 @@ class ParametrizedPDF extends TCPDF {
 
 	}
 
-	public function addHeaderItems($items) {
-		array_push($this->headerItems, $items);
+	public function setCustomHeader($header) {
+		if(!$header) {
+			return;
+		}
+
+		$margin = getOptionalParam("margin", $header, 10);
+		$this->setHeaderMargin($margin);
+		
+		$items = getOptionalParam("items", $header, false);
+		if(!$items) {
+			return;
+		}
+
+		$this->headerItems = $items;
 	}
 
-	public function addFooterItems($items) {
-		array_push($this->footerItems, $items);	
+	public function setCustomFooter($footer) {
+		if(!$footer) {
+			return;
+		}
+
+		$margin = getOptionalParam("margin", $footer, 10);
+		$this->setFooterMargin($margin);
+
+		$items = getOptionalParam("items", $footer, false);
+		if(!$items) {
+			return;
+		}
+
+		$this->footerItems = $items;	
 	}
 
 	public function Header() {
-		if(count($this->headerItems)>0) {
+		if($this->headerItems && count($this->headerItems)>0) {
 			$this->addItems($this->headerItems);	
 		}
 		
 	}
 
 	public function Footer() {
-		if(count($this->footerItems)>0) {
+		if($this->footerItems && count($this->footerItems)>0) {
 			$this->addItems($this->$footerItems);		
 		}
 	}
 
+	protected function setTableHeader() {
+		if ($this->num_columns > 1) {
+			// multi column mode
+			return;
+		}
+		if (isset($this->theadMargins['top'])) {
+			// restore the original top-margin
+			$this->tMargin = $this->theadMargins['top'];
+			$this->pagedim[$this->page]['tm'] = $this->tMargin;
+			$this->y = $this->tMargin;
+		}
+		if (!TCPDF_STATIC::empty_string($this->thead) AND (!$this->inthead)) {
+			// set margins
+			$prev_lMargin = $this->lMargin;
+			$prev_rMargin = $this->rMargin;
+
+			error_log("1. ".$this->_theaderLeft);
+			if($this->theadMargins["lmargin"]!= $this->lMargin) {
+				$this->_theaderLeft = $this->lMargin;
+			}
+
+			$prev_cell_padding = $this->cell_padding;
+			$this->lMargin = $this->theadMargins['lmargin'] + ($this->pagedim[$this->page]['olm'] - $this->pagedim[$this->theadMargins['page']]['olm']);
+			$this->rMargin = $this->theadMargins['rmargin'] + ($this->pagedim[$this->page]['orm'] - $this->pagedim[$this->theadMargins['page']]['orm']);
+			$this->cell_padding = $this->theadMargins['cell_padding'];
+			if ($this->rtl) {
+				$this->x = $this->w - $this->rMargin;
+			} else {
+				$this->x = $this->lMargin;
+			}
+			// account for special "cell" mode
+			if ($this->theadMargins['cell']) {
+				if ($this->rtl) {
+					$this->x -= $this->cell_padding['R'];
+				} else {
+					$this->x += $this->cell_padding['L'];
+				}
+			}
+
+			error_log(get_class($this));
+
+			error_log("2. ".$this->_theaderLeft);
+			$this->x = $this->_theaderLeft;
+
+
+			// print table header
+			$this->writeHTML($this->thead, false, false, false, false, '');
+			// set new top margin to skip the table headers
+			if (!isset($this->theadMargins['top'])) {
+				$this->theadMargins['top'] = $this->tMargin;
+			}
+			// store end of header position
+			if (!isset($this->columns[0]['th'])) {
+				$this->columns[0]['th'] = array();
+			}
+			$this->columns[0]['th']['\''.$this->page.'\''] = $this->y;
+			$this->tMargin = $this->y;
+			$this->pagedim[$this->page]['tm'] = $this->tMargin;
+			$this->lasth = 0;
+			$this->lMargin = $prev_lMargin;
+			$this->rMargin = $prev_rMargin;
+			$this->cell_padding = $prev_cell_padding;
+		}
+	}
 }

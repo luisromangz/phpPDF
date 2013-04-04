@@ -127,11 +127,11 @@ $pdf->SetCreator(getOptionalParam("creator", $params,"Created with phpPDF and TC
 $pdf->SetAuthor(getOptionalParam("author", $params,""));
 $pdf->SetKeywords(getOptionalParam("keywords",$params,""));
 
-$pdf->SetAutoPageBreak(true, $margin);
+
 
 
 $pdf->SetMargins($margin, $margin,$margin,false);
-
+$pdf->SetAutoPageBreak(true, 100);
 
 if($header) {
 	$pdf->setCustomHeader($header);

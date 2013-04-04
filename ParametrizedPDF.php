@@ -26,6 +26,10 @@ class ParametrizedPDF extends TCPDF {
 
 		$height = $this->getLineHeight($this);
 		// We decode the string as in PDFs content UTF8 is not supported
+
+		$text= str_replace("%PAGE_NUMBER%",$this->getAliasNumPage(),$text);
+		$text=str_replace("%PAGE_COUNT%",$this->getAliasNbPages(), $text);
+
 		$this->Cell(0, $height, $text, 0, $newLine, $align);
 
 	}
@@ -36,6 +40,10 @@ class ParametrizedPDF extends TCPDF {
 		$width = getOptionalParam("width", $parItem, 0);
 
 		$lineHeight = $this->getLineHeight($this);
+
+		$text= str_replace("%PAGE_NUMBER%",$this->getAliasNumPage(),$text);
+		$text=str_replace("%PAGE_COUNT%",$this->getAliasNbPages(), $text);
+
 		$this->MultiCell($width, $lineHeight, $text, 0, $align);
 	}
 
@@ -274,6 +282,9 @@ class ParametrizedPDF extends TCPDF {
 
 		$htmlTable.= "</table>";
 
+		$htmlTable= str_replace("%PAGE_NUMBER%",$this->getAliasNumPage(),$htmlTable);
+		$htmlTable=str_replace("%PAGE_COUNT%",$this->getAliasNbPages(), $htmlTable);
+
 		$this->writeHTML($htmlTable, false, false, false, false, '');
 	}
 
@@ -288,6 +299,11 @@ class ParametrizedPDF extends TCPDF {
 
 			$htmlContent = $this->remoteRequest($url, $idx);
 		}
+
+
+		$htmlContent= str_replace("%PAGE_NUMBER%",$this->getAliasNumPage(),$htmlContent);
+		$htmlContent=str_replace("%PAGE_COUNT%",$this->getAliasNbPages(), $htmlContent);
+
 
 		$this->writeHTML($htmlContent, false, false, false, false, '');
 	}
@@ -415,7 +431,7 @@ class ParametrizedPDF extends TCPDF {
 
 	public function Footer() {
 		if($this->footerItems && count($this->footerItems)>0) {
-			$this->addItems($this->$footerItems);		
+			$this->addItems($this->footerItems);		
 		}
 	}
 

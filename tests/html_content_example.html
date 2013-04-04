@@ -9,7 +9,7 @@
 	<form method="POST" action="../phpPDF.php" enctype="multipart/form-data">
 
 		<input type="hidden" name="params"
-			value='{"orientation":"L","items":[{"type":"html","url":"http://localhost/phpPDF/tests/minem_table.html"},{"text":"After html!","dy":5}],"header":{"items":[{"text":"Header!","newLine":true, "x": 65},{"type":"image","url":"http://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Wikipe-tan_in_navy_uniform2_transparent.png/240px-Wikipe-tan_in_navy_uniform2_transparent.png", "x":30,"y":10,"width":30}]}}'/>		
+			value='{"orientation":"L","items":[{"type":"html","url":"http://localhost/phpPDF/tests/minem_table.html"},{"text":"After html!","dy":5}],"header":{"items":[{"text":"Header!","newLine":true, "x": 65},{"type":"image","url":"http://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Wikipe-tan_in_navy_uniform2_transparent.png/240px-Wikipe-tan_in_navy_uniform2_transparent.png", "x":30,"y":10,"width":30}]},"footer":{"items":[{"text": "%PAGE_NUMBER%/%PAGE_COUNT%","align":"R","margin":10}]}}'/>		
 		
 		<p>
 			<button type="submit">Create PDF!</button>

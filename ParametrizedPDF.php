@@ -328,7 +328,7 @@ class ParametrizedPDF extends TCPDF {
 		// We set the font styles that will be used in this items and following ones
 		// (if not changed again).
 		if (array_key_exists("newFont", $item)) {
-			applyNewFont($item["newFont"]);
+			$this->applyNewFont($item["newFont"]);
 		}
 
 		$lineWidth = getOptionalParam("newLineWidth", $item, $this->GetLineWidth());

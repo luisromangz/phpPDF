@@ -130,7 +130,7 @@ class ParametrizedPDF extends TCPDF {
 
 	private function imageFromRemoteUrl($url, $idx) {
 
-		$imageContent = $this->remoteRequest($url);
+		$imageContent = $this->remoteRequest($url, $idx);
 
 		// Handle response
 		$srcImage = $this->imageFromContents($imageContent);
@@ -139,9 +139,6 @@ class ParametrizedPDF extends TCPDF {
 		if (!$srcImage) {
 			showError("The url specified for image item at position $idx didn't contain a valid image.");
 		}
-
-		// Close the connetion
-		curl_close($session);
 
 		return $srcImage;
 	}

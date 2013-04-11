@@ -103,6 +103,21 @@ if($downloadFile) {
 
 $paperSize = getOptionalParam("size",$params,"A4");
 $margin = getOptionalParam("margin", $params, 30);
+
+
+if(is_array($margin)) {
+	$marginTop = getOptionalParam("top", $margin,30);
+	$marginBottom= getOptionalParam("bottom", $margin,30);
+	$marginRight = getOptionalParam("right", $margin,30);
+	$marginLeft = getOptionalParam("left", $margin,30);
+} else {
+	$marginTop = $margin;
+	$marginBottom = $margin;
+	$marginLeft = $margin;
+	$marginRight = $margin;
+}
+
+
 $pageOrientation = getOptionalParam("orientation", $params, "P");
 
 $items = array();
@@ -128,10 +143,8 @@ $pdf->SetAuthor(getOptionalParam("author", $params,""));
 $pdf->SetKeywords(getOptionalParam("keywords",$params,""));
 
 
-
-
-$pdf->SetMargins($margin, $margin,$margin,false);
-$pdf->SetAutoPageBreak(true, 100);
+$pdf->SetMargins($marginLeft, $marginTop, $marginRight,true);
+$pdf->SetAutoPageBreak(true, $marginBottom);
 
 if($header) {
 	$pdf->setCustomHeader($header);

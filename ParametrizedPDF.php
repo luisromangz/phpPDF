@@ -104,16 +104,18 @@ class ParametrizedPDF extends TCPDF {
 
 		// Page break disabled before adding the image, or it might be downscaled to fit the page even if
 		// the Image method receives a fitonpage false by default.
+		$bottomMargin = $this->getBreakMargin();
 		$this->SetAutoPageBreak(false);
 		// We specify PNG as the format as we always convert the image or PDF to PNG.
 		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG");
-		$margins = $this->GetMargins();
-		$this->SetAutoPageBreak(true, $margins["bottom"]);
+		$this->SetAutoPageBreak(true, $bottomMargin);
 		$this->SetY($this->GetY() + $height);
 
 		unlink($imagePath);
 
 		imagedestroy($pngImage);
+
+
 	}
 
 	private function imageFromDataUri($imageURL, $idx) {
@@ -471,10 +473,8 @@ class ParametrizedPDF extends TCPDF {
 				}
 			}
 
-			error_log(get_class($this));
-
 			error_log("2. ".$this->_theaderLeft);
-			$this->x = $this->_theaderLeft;
+			$this->x = $this->lMargin;
 
 
 			// print table header

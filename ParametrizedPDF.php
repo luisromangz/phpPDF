@@ -300,7 +300,7 @@ class ParametrizedPDF extends TCPDF {
 		}
 
 
-		$this->setListIndentWidth(getOptionalParam("listIndent", $htmlItem, 5));
+		$this->setListIndentWidth(getOptionalParam("listIndent", $htmlItem, $this->GetStringWidth("x")));
 
 		$htmlContent= str_replace("%PAGE_NUMBER%",$this->getAliasNumPage(),$htmlContent);
 		$htmlContent=str_replace("%PAGE_COUNT%",$this->getAliasNbPages(), $htmlContent);

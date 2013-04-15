@@ -124,7 +124,7 @@ $items = array();
 if(array_key_exists("items",$params)) {
 	$items = $params["items"];
 } else {
-	showError("At least one item must be defined! ".$params);
+	showError("At least one item must be defined! ");
 }
 
 $header = getOptionalParam("header", $params, false);
@@ -155,6 +155,14 @@ if($footer) {
 }
 
 $pdf->AddPage();
+
+$pdf->setHtmlVSpace(array("dt"=>array(0=>array("n"=>0))));
+
+$columns = getOptionalParam("columns", $params, 1);
+if($columns > 1) {
+	$pdf->setEqualColumns($columns, ($pdf->getPageWidth())/3 -5);
+}
+
 $pdf->SetFontSize(12);
 
 // We add items to the pdf!

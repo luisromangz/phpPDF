@@ -6,6 +6,15 @@ class ParametrizedPDF extends TCPDF {
 	protected $headerItems = array();
 	private $_theaderLeft;
 
+	public function __construct($pageOrientation, $unit,$paperSize) {
+		parent::__construct($pageOrientation, $unit,$paperSize);
+
+		$this->setHtmlVSpace(array(
+			"dt"=>array(0=>array("n"=>0)),
+			"ul"=>array(0=>array("n"=>0)),
+			"dd"=>array(0=>array("n"=>0))));		
+	}
+
 	private function applyNewFont($newFont) {
 		$newFamily = getOptionalParam("family", $newFont, $this->getFontFamily());
 

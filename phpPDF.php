@@ -156,8 +156,6 @@ if($footer) {
 
 $pdf->AddPage();
 
-$pdf->setHtmlVSpace(array("dt"=>array(0=>array("n"=>0))));
-
 $columns = getOptionalParam("columns", $params, 1);
 if($columns > 1) {
 	$pdf->setEqualColumns($columns, ($pdf->getPageWidth())/3 -5);

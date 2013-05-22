@@ -83,15 +83,19 @@ class ParametrizedPDF extends TCPDF {
 		$imageWidthPx = imagesx($pngImage);
 		$imageHeightPx = imagesy($pngImage);
 
-		// Conversion between mm and px. 1 inch = 25.4 mm, and standard PDF resolution is 72 dpi (px/inch).
-		$pxToMM = 25.4 / 72;
+		$dpi = getOptionalParam("dpi",$imageItem, 91);
 
+		// Conversion between mm and px. 1 inch = 25.4 mm, and standard PDF resolution is 72 dpi (px/inch).
+		$pxToMM = 25.4 / $dpi;
+
+		error_log($imageWidthPx.", ".$imageHeightPx);
 		$iWidth = $imageWidthPx * $pxToMM;
 		$iHeight = $imageHeightPx * $pxToMM;
 
 		// Optional params "width" and "height"	
 		$width = $iWidth;
 		$height = $iHeight;
+
 		if (array_key_exists("width", $imageItem) && array_key_exists("height", $imageItem)) {
 			$width = $imageItem["width"];
 			$height = $imageItem["height"];
@@ -116,7 +120,7 @@ class ParametrizedPDF extends TCPDF {
 		$bottomMargin = $this->getBreakMargin();
 		$this->SetAutoPageBreak(false);
 		// We specify PNG as the format as we always convert the image or PDF to PNG.
-		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG");
+		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",2);
 		$this->SetAutoPageBreak(true, $bottomMargin);
 		$this->SetY($this->GetY() + $height);
 

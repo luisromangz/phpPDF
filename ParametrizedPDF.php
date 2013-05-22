@@ -127,8 +127,6 @@ class ParametrizedPDF extends TCPDF {
 		unlink($imagePath);
 
 		imagedestroy($pngImage);
-
-
 	}
 
 	private function imageFromDataUri($imageURL, $idx) {
@@ -322,6 +320,19 @@ class ParametrizedPDF extends TCPDF {
 		$this->writeHTML($htmlContent, false, false, false, false, '');
 	}
 
+	private function addPageBreakItem($pageBreakItem, $idx) {
+		$this->AddPage();
+
+		$columns = getOptionalParam("columns", $pageBreakItem,1);
+		$columnTopMargin= getOptionalParam("topMargin", $pageBreakItem,1);
+
+		if($columns>1){			
+			$this->setEqualColumns($columns, ($this->getPageWidth()/$columns) -5, $columnTopMargin);	
+		} else {
+			$this->resetColumns();
+		}
+	}
+
 
 	private function getLineHeight() {
 		// A possibly very bad appoximation.
@@ -388,11 +399,13 @@ class ParametrizedPDF extends TCPDF {
 				$this->addTableItem($item, $idx);
 				break;
 			case "html":
-
 				$this->addHtmlItem($item, $idx);
 				break;
+			case "pagebreak":
+				$this->addPageBreakItem($item, $idx);
+				break;
 			default:
-				showError("Unsupported item type for item ".$idx);
+				showError("Unsupported item type for item ".$idx.": ".$type);
 		}
 
 		// By default, we advance the position so we are placed after the element.

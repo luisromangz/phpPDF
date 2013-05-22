@@ -158,7 +158,7 @@ $pdf->AddPage();
 
 $columns = getOptionalParam("columns", $params, 1);
 if($columns > 1) {
-	$pdf->setEqualColumns($columns, ($pdf->getPageWidth())/3 -5);
+	$pdf->setEqualColumns($columns, ($pdf->getPageWidth())/$columns -5);
 }
 
 $pdf->SetFontSize(12);

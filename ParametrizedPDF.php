@@ -120,7 +120,17 @@ class ParametrizedPDF extends TCPDF {
 		$bottomMargin = $this->getBreakMargin();
 		$this->SetAutoPageBreak(false);
 		// We specify PNG as the format as we always convert the image or PDF to PNG.
-		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",2);
+
+		$border = getOptionalParam("border", $imageItem, 0);
+		if($border===true) {
+			$border = array('LTRB' => array('width' => 0.1, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
+		} else if($border) {
+			$borderColor = getOptionalParam("color", $border, "black");
+			$borderWidth = getOptionalParam("width", $border, 1);
+			$border = array('LTRB' => array('width' => $borderWidth, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => $borderColor));
+		}
+
+		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",2,300,"",false,false,$border);
 		$this->SetAutoPageBreak(true, $bottomMargin);
 		$this->SetY($this->GetY() + $height);
 
@@ -187,17 +197,77 @@ class ParametrizedPDF extends TCPDF {
 			showError("No uploaded file found for file input name '$fileInputName' specified for item at position $idx");
 		}
 
+		$error = $_FILES[$formFieldName]["error"];
+
+		 switch ($error) {
+	        case UPLOAD_ERR_OK:
+	            $error = false;
+	            break;
+	        case UPLOAD_ERR_INI_SIZE:
+	            $error = 'The uploaded file exceeds the upload_max_filesize directive in php.ini.';
+	            break;
+	        case UPLOAD_ERR_FORM_SIZE:
+	            $error = 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.';
+	            break;
+	        case UPLOAD_ERR_PARTIAL:
+	            $error = 'The uploaded file was only partially uploaded.';
+	            break;
+	        case UPLOAD_ERR_NO_FILE:
+	            $error = 'No file was uploaded.';
+	            break;
+	        case UPLOAD_ERR_NO_TMP_DIR:
+	            $error = 'Missing a temporary folder. Introduced in PHP 4.3.10 and PHP 5.0.3.';
+	            break;
+	        case UPLOAD_ERR_CANT_WRITE:
+	            $error = 'Failed to write file to disk. Introduced in PHP 5.1.0.';
+	            break;
+	        case UPLOAD_ERR_EXTENSION:
+	            $error = 'File upload stopped by extension. Introduced in PHP 5.2.0.';
+	            break;
+	        default:
+	            $error = 'Unknown error';
+	            break;
+	    }
+
+	    if($error) {
+	    	showError("The image upload for field '$formFieldName' for image item at $idx failed: $error");
+	    }
+
+
+	    $fileName = $_FILES[$formFieldName]["name"];
+
 		// We try opening the uploaded file we don't trust mime type or extensions.
-		$filePath = $_FILES[$formFieldName]["tmp_name"];
+		$filePath = $_FILES[$formFieldName]["tmp_name"];			
+		if(!$filePath) {
+			showError("The image uploaded in field '$formFieldName' for image item at $idx has an invalid upload path.");
+		}
 
+		if(!is_uploaded_file($filePath)) {
+			showError("The image uploaded in field '$formFieldName' is not an uploaded file, filename: $fileName");
+		}
 
-		$resultImg = $this->imageFromContents(file_get_contents($filePath));
+		$uploadTmpPath = tempnam(sys_get_temp_dir(), "uploadedFile");	
+		if(!move_uploaded_file ($filePath, $uploadTmpPath)) {
+			showError("The image uploaded in field '$formFieldName' is invalid, path: $uploadTmpPath, filename: $fileName");
+		}
+
+		if(!file_exists($uploadTmpPath)) {
+			showError("The image uploaded in field '$formFieldName' for image item at $idx doesn't exist, path: $uploadTmpPath, filename: $fileName");
+		}
+
+		$fileContents = file_get_contents($uploadTmpPath);
+
+		if(!$fileContents) {
+			showError("The image uploaded in field '$formFieldName' for image item at $idx is empty, path: $uploadTmpPath, filename: $fileName");
+		}
+
+		$resultImg = $this->imageFromContents($fileContents);
 
 		if (!$resultImg) {
 			showError("The image uploaded in field '$formFieldName' for image item at $idx has an invalid format.");
 		}
 
-		unlink($filePath);
+		//unlink($uploadTmpPath);
 
 		return $resultImg;
 

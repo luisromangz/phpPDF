@@ -130,7 +130,12 @@ class ParametrizedPDF extends TCPDF {
 			$border = array('LTRB' => array('width' => $borderWidth, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => $borderColor));
 		}
 
-		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",2,300,"",false,false,$border);
+		$scaleMode = 2;
+		if($width!=$iWidth || $height!= $iHeight) {
+			$scaleMode = false;
+		}
+
+		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",$scaleMode,300,"",false,false,$border);
 		$this->SetAutoPageBreak(true, $bottomMargin);
 		$this->SetY($this->GetY() + $height);
 
@@ -194,7 +199,7 @@ class ParametrizedPDF extends TCPDF {
 
 	private function imageFromUpload($formFieldName, $idx) {
 		if (!array_key_exists($formFieldName, $_FILES)) {
-			showError("No uploaded file found for file input name '$fileInputName' specified for item at position $idx");
+			showError("No uploaded file found for file input name '$formFieldName' specified for item at position $idx");
 		}
 
 		$error = $_FILES[$formFieldName]["error"];

@@ -73,6 +73,23 @@ if($params) {
 	 showError("Params parameter is required!");
 }
 
+
+// We copy the uploaded files here as we seem to lose them if try to handle them 
+// inside ParametrizedPDF... :(
+foreach($_FILES as $inputName => $uploadInfo) {
+	$filePath = $uploadInfo["tmp_name"];
+	if(!file_exists($filePath)) {
+		showError("The uploaded file $filePath wasn't found");
+	}	
+
+	$uploadPath = sys_get_temp_dir()."/".$uploadInfo["name"];
+	if(!move_uploaded_file($filePath, $uploadPath)){
+		showError("The uploaded file $filePath couldn't be moved to $uploadPath");
+	}
+}
+
+
+
 $outputFormat = getOptionalParam("outputFormat", $params, "PDF");
 if(!in_array($outputFormat, array("PDF","PNG"))) {
 	showError("Output format must be one of: 'PDF','PNG'");
@@ -167,6 +184,12 @@ $pdf->SetFontSize(12);
 $pdf->addItems($items);
 
 $keepFile = getOptionalParam("keepFile", $params, false);
+
+// We remove the moved uploaded files.
+foreach($_FILES as $inputName => $fileInfo) {
+	unlink(sys_get_temp_dir()."/".$fileInfo["name"]);
+}
+
 
 if(!$keepFile && $outputFormat==="PDF") {
 	$pdf->Output($outputFile,"D");		

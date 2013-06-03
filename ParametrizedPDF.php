@@ -173,27 +173,32 @@ class ParametrizedPDF extends TCPDF {
 
 	private function remoteRequest($url, $idx) {
 		// Defining the default CURL options
-		$defaults = array(
-		CURLOPT_URL => $url,
-		CURLOPT_RETURNTRANSFER => TRUE);
+		// $defaults = array(
+		// CURLOPT_URL => $url,
+		// CURLOPT_CONNECTTIMEOUT=>0,
+		// CURLOPT_FRESH_CONNECT=>TRUE,
+		// CURLOPT_RETURNTRANSFER => TRUE);
 
-		// Open the Curl session
-		$session = curl_init();
+		// // Open the Curl session
+		// $session = curl_init();
 
-		// Setting the options
-		curl_setopt_array($session, $defaults);
+		// // Setting the options
+		// curl_setopt_array($session, $defaults);
 
-		// Make the call
-		$remoteContent = curl_exec($session);
+		// // Make the call
+		// $remoteContent = curl_exec($session);
 
-		// Close the connetion
-		curl_close($session);
+		$remoteContent = file_get_contents($url);
+
 
 		if (!$remoteContent) {
 			showError("Curl couldn't retrieve the content of url ".$url.
-			" specified in the item at position $idx. Error was: ".curl_error($session));
+			" specified in the item at position $idx.: ");
 		}
 
+		// // Close the connetion
+		// curl_close($session);
+		
 		return $remoteContent;
 	}
 
@@ -242,28 +247,14 @@ class ParametrizedPDF extends TCPDF {
 	    $fileName = $_FILES[$formFieldName]["name"];
 
 		// We try opening the uploaded file we don't trust mime type or extensions.
-		$filePath = $_FILES[$formFieldName]["tmp_name"];			
-		if(!$filePath) {
-			showError("The image uploaded in field '$formFieldName' for image item at $idx has an invalid upload path.");
-		}
+		//$filePath = $_FILES[$formFieldName]["tmp_name"];			
+		
+		$filePath = sys_get_temp_dir()."/".$fileName;
 
-		if(!is_uploaded_file($filePath)) {
-			showError("The image uploaded in field '$formFieldName' is not an uploaded file, filename: $fileName");
-		}
-
-		$uploadTmpPath = tempnam(sys_get_temp_dir(), "uploadedFile");	
-		if(!move_uploaded_file ($filePath, $uploadTmpPath)) {
-			showError("The image uploaded in field '$formFieldName' is invalid, path: $uploadTmpPath, filename: $fileName");
-		}
-
-		if(!file_exists($uploadTmpPath)) {
-			showError("The image uploaded in field '$formFieldName' for image item at $idx doesn't exist, path: $uploadTmpPath, filename: $fileName");
-		}
-
-		$fileContents = file_get_contents($uploadTmpPath);
+		$fileContents = file_get_contents($filePath);
 
 		if(!$fileContents) {
-			showError("The image uploaded in field '$formFieldName' for image item at $idx is empty, path: $uploadTmpPath, filename: $fileName");
+			showError("The image uploaded in field '$formFieldName' for image item at $idx is empty, path: $filePath, filename: $fileName");
 		}
 
 		$resultImg = $this->imageFromContents($fileContents);
@@ -272,10 +263,7 @@ class ParametrizedPDF extends TCPDF {
 			showError("The image uploaded in field '$formFieldName' for image item at $idx has an invalid format.");
 		}
 
-		//unlink($uploadTmpPath);
-
 		return $resultImg;
-
 	}
 
 	private function imageFromContents($fileContents) {

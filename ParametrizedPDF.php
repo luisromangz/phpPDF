@@ -121,21 +121,35 @@ class ParametrizedPDF extends TCPDF {
 		$this->SetAutoPageBreak(false);
 		// We specify PNG as the format as we always convert the image or PDF to PNG.
 
-		$border = getOptionalParam("border", $imageItem, 0);
+		
+
+		$scaleMode = 2;
+		$dpi=300;
+		if($width!=$iWidth || $height!= $iHeight) {
+			$scaleMode = false;
+			$dpi=0;
+		}
+
+		$x = $this->GetX();
+		$y = $this->GetY();
+
+		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",$scaleMode,$dpi);
+
+		$border = getOptionalParam("border", $imageItem, false);
 		if($border===true) {
-			$border = array('LTRB' => array('width' => 0.1, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => array(0, 0, 0)));
+			$border = array('LTRB' => array('width' => 0.1, 'cap' => 'square', 'join' => 'mitter', 'dash' => 0, 'color' => array(0, 0, 0)));
 		} else if($border) {
 			$borderColor = getOptionalParam("color", $border, "black");
 			$borderWidth = getOptionalParam("width", $border, 1);
 			$border = array('LTRB' => array('width' => $borderWidth, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => $borderColor));
 		}
 
-		$scaleMode = 2;
-		if($width!=$iWidth || $height!= $iHeight) {
-			$scaleMode = false;
+		if($border) {
+			$this->Rect($x, $y, $width, $height,"", $border, null);	
 		}
 
-		$this->Image($imagePath, $this->GetX(), $this->GetY(), $width, $height, "PNG","","",$scaleMode,300,"",false,false,$border);
+		
+
 		$this->SetAutoPageBreak(true, $bottomMargin);
 		$this->SetY($this->GetY() + $height);
 

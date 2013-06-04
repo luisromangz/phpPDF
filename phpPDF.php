@@ -77,14 +77,17 @@ if($params) {
 // We copy the uploaded files here as we seem to lose them if try to handle them 
 // inside ParametrizedPDF... :(
 foreach($_FILES as $inputName => $uploadInfo) {
-	$filePath = $uploadInfo["tmp_name"];
-	if(!file_exists($filePath)) {
-		showError("The uploaded file $filePath wasn't found");
-	}	
+	if($uploadInfo["size"]!==0) {
+		$filePath = $uploadInfo["tmp_name"];
 
-	$uploadPath = sys_get_temp_dir()."/".$uploadInfo["name"];
-	if(!move_uploaded_file($filePath, $uploadPath)){
-		showError("The uploaded file $filePath couldn't be moved to $uploadPath");
+		if(!file_exists($filePath)) {
+			showError("The uploaded file $filePath wasn't found");
+		}	
+
+		$uploadPath = sys_get_temp_dir()."/".$uploadInfo["name"];
+		if(!move_uploaded_file($filePath, $uploadPath)){
+			showError("The uploaded file $filePath couldn't be moved to $uploadPath");
+		}	
 	}
 }
 

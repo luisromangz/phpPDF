@@ -93,17 +93,21 @@ foreach($_FILES as $inputName => $uploadInfo) {
 
 
 
-$outputFormat = getOptionalParam("outputFormat", $params, "PDF");
+$outputFormat = strtoupper(getOptionalParam("outputFormat", $params, "PDF"));
 if(!in_array($outputFormat, array("PDF","PNG"))) {
 	showError("Output format must be one of: 'PDF','PNG'");
 }
 
+$outputFile = getOptionalParam("outputFile",$params, false);
+
 $downloadFile = getOptionalParam("downloadFile", $params, false);
 if($downloadFile) {
 	// The user wants to download a previously generated file.
-	$outputFile = substr($downloadFile, 0, strrpos($downloadFile,"_"));
-	$outputFile.=strtolower(".$outputFormat");
 	$mimeType = $outputFormat=="PDF"?"application/pdf":"image/png";	
+
+	if(!$outputFile) {
+		$outputFile = "$downloadFile.". strtolower($outputFormat);
+	}
 
 	header("Content-type: $mimeType");
 	header("Content-disposition: attachment; filename=$outputFile");
@@ -120,6 +124,9 @@ if($downloadFile) {
 	exit(0);
 }
 
+if(!$outputFile) {
+	$outputFile = $outputFormat==="PDF"?"doc.pdf":"doc.png";
+}
 
 $paperSize = getOptionalParam("size",$params,"A4");
 $margin = getOptionalParam("margin", $params, 30);
@@ -149,8 +156,6 @@ if(array_key_exists("items",$params)) {
 
 $header = getOptionalParam("header", $params, false);
 $footer = getOptionalParam("footer", $params, false);
-
-$outputFile = getOptionalParam("outputFile",$params, $outputFormat==="PDF"?"doc.pdf":"doc.png");
 
 $pdf = new ParametrizedPDF($pageOrientation,"mm",$paperSize);
 
